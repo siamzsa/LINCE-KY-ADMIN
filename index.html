@@ -7,27 +7,27 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <!-- Firebase SDK v9+ (Modular) -->
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp, where, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  <!-- Firebase Config -->
-  <script>
+    // Your web app's Firebase configuration
     const firebaseConfig = {
-      apiKey: "AIzaSy8m3iuH0de6K31q58DlDcm4RFsJfNTt0Y",
-      authDomain: "xsiam-8cd91.firebaseapp.com",
-      databaseURL: "https://xsiam-8cd91-default-rtdb.firebaseio.com",
-      projectId: "xsiam-8cd91",
-      storageBucket: "xsiam-8cd91.appspot.com",
-      messagingSenderId: "449795686178",
-      appId: "1:449795686178:web:67631b23b88be6a0eaef7b",
-      measurementId: "G-C987LSZV4G"
+      apiKey: "AIzaSyAEugnJ6e4tTBBkoTupBcTxy9LyOemUo8",
+      authDomain: "siam-ba9a3.firebaseapp.com",
+      projectId: "siam-ba9a3",
+      storageBucket: "siam-ba9a3.appspot.com",
+      messagingSenderId: "456685152210",
+      appId: "1:456685152210:web:4f522d5aa9b0b2e5a40ab",
+      measurementId: "G-K978KSZ6L"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-  </script>
 
-  <script>
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     document.addEventListener("DOMContentLoaded", async () => {
       const addBtn = document.getElementById("addLicenseBtn");
       const nameInput = document.getElementById("nameInput");
@@ -39,11 +39,12 @@
       async function loadLicenses() {
         list.innerHTML = '<div class="text-gray-500 text-sm">Loading...</div>';
         try {
-          const snapshot = await db.collection('licenses').orderBy('createdAt', 'desc').get();
+          const q = query(collection(db, 'licenses'), orderBy('createdAt', 'desc'));
+          const snapshot = await getDocs(q);
           list.innerHTML = '';
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            createRow(doc.id, data.name, data.key, data.date, data.active);
+          snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            createRow(docSnap.id, data.name, data.key, data.date, data.active);
           });
           if (list.innerHTML === '') {
             list.innerHTML = '<div class="text-gray-400 text-sm">No licenses added yet.</div>';
@@ -68,10 +69,10 @@
 
         const date = formatDate();
         try {
-          await db.collection('licenses').add({
+          await addDoc(collection(db, 'licenses'), {
             name, key, date,
             active: true,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            createdAt: serverTimestamp()
           });
           message.textContent = "✅ License added successfully!";
           message.className = "text-green-500 text-sm mt-2";
@@ -108,7 +109,7 @@
         toggleBtn.addEventListener("click", async () => {
           const newActive = !active;
           try {
-            await db.collection('licenses').doc(docId).update({ active: newActive });
+            await updateDoc(doc(db, 'licenses', docId), { active: newActive });
             loadLicenses();
           } catch (err) {
             alert("Error updating status!");
@@ -124,7 +125,7 @@
         deleteBtn.addEventListener("click", async () => {
           if (confirm(`Are you sure you want to delete ${name}?`)) {
             try {
-              await db.collection('licenses').doc(docId).delete();
+              await deleteDoc(doc(db, 'licenses', docId));
               loadLicenses();
             } catch (err) {
               alert("Error deleting license!");
@@ -146,9 +147,8 @@
       // লাইসেন্স কী দিয়ে devices কালেকশন থেকে ডিভাইসের সংখ্যা নাও
       async function fetchDeviceCount(licenseKey, docId) {
         try {
-          const devicesSnapshot = await db.collection('devices')
-            .where('licenseKey', '==', licenseKey)
-            .get();
+          const q = query(collection(db, 'devices'), where('licenseKey', '==', licenseKey));
+          const devicesSnapshot = await getDocs(q);
           const count = devicesSnapshot.size;
           const deviceCountElem = document.getElementById(`deviceCount-${docId}`);
           if (deviceCountElem) {
@@ -176,19 +176,15 @@
 <body class="bg-gray-100 min-h-screen font-sans">
   <div class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-xl shadow-xl">
     <h1 class="text-2xl font-bold mb-4 text-gray-800">License Admin Panel</h1>
-
     <div class="grid grid-cols-1 gap-4 mb-4 md:grid-cols-2">
       <input id="nameInput" type="text" placeholder="User name" class="p-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition duration-300" />
       <input id="keyInput" type="text" placeholder="License key" class="p-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition duration-300" />
     </div>
-
     <button id="addLicenseBtn" class="w-full flex justify-center items-center gap-2 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-transform transform hover:scale-105">
       <i class="fas fa-circle-plus text-white text-lg"></i> <span>Add License</span>
     </button>
     <div id="message" class="mt-3"></div>
-
     <hr class="my-6 border-t" />
-
     <h2 class="text-lg font-semibold text-gray-700 mb-2">Added Licenses</h2>
     <div id="licenseList" class="space-y-4"></div>
   </div>
