@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>License Admin Panel with User Device Info</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>License Admin Panel</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
+  <!-- Firebase Config -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSy8m3iuH0de6K31q58DlDcm4RFsJfNTt0Y",
@@ -34,6 +35,7 @@
       const list = document.getElementById("licenseList");
       const message = document.getElementById("message");
 
+      // লাইসেন্স লোড করা
       async function loadLicenses() {
         list.innerHTML = '<div class="text-gray-500 text-sm">Loading...</div>';
         try {
@@ -52,6 +54,7 @@
         }
       }
 
+      // লাইসেন্স যুক্ত করা
       addBtn.addEventListener("click", async () => {
         const name = nameInput.value.trim();
         const key = keyInput.value.trim();
@@ -82,20 +85,17 @@
         }
       });
 
+      // লাইসেন্স রো তৈরি ও UI-তে দেখানো
       function createRow(docId, name, key, date, active = true) {
         const row = document.createElement("div");
-        row.className = "flex flex-col bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition duration-300";
-
-        // Top row: name + controls
-        const topRow = document.createElement("div");
-        topRow.className = "flex justify-between items-center mb-2";
+        row.className = "flex justify-between items-center bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition duration-300";
 
         const left = document.createElement("div");
         left.innerHTML = `
           <div class="font-semibold text-gray-800">${name}</div>
           <div class="text-sm text-gray-500">${key}</div>
           <div class="text-xs text-gray-400">Added: ${date}</div>
-          <div id="deviceInfo-${docId}" class="mt-2 text-xs text-gray-700">Loading device info...</div>
+          <div id="deviceCount-${docId}" class="text-xs text-blue-600 mt-1">Loading device count...</div>
         `;
 
         const right = document.createElement("div");
@@ -135,51 +135,31 @@
 
         right.appendChild(toggleBtn);
         right.appendChild(deleteBtn);
-
-        topRow.appendChild(left);
-        topRow.appendChild(right);
-
-        row.appendChild(topRow);
+        row.appendChild(left);
+        row.appendChild(right);
         list.appendChild(row);
 
-        fetchDeviceInfo(key, docId);
+        // ডিভাইস কাউন্ট ফেচ করো
+        fetchDeviceCount(key, docId);
       }
 
-      async function fetchDeviceInfo(licenseKey, docId) {
+      // লাইসেন্স কী দিয়ে devices কালেকশন থেকে ডিভাইসের সংখ্যা নাও
+      async function fetchDeviceCount(licenseKey, docId) {
         try {
           const devicesSnapshot = await db.collection('devices')
             .where('licenseKey', '==', licenseKey)
             .get();
-
-          const deviceInfoDiv = document.getElementById(`deviceInfo-${docId}`);
-          if (!deviceInfoDiv) return;
-
-          if (devicesSnapshot.empty) {
-            deviceInfoDiv.textContent = "No devices registered.";
-            return;
+          const count = devicesSnapshot.size;
+          const deviceCountElem = document.getElementById(`deviceCount-${docId}`);
+          if (deviceCountElem) {
+            deviceCountElem.textContent = `Used on ${count} device${count !== 1 ? 's' : ''}`;
           }
-
-          let infoHtml = '';
-          devicesSnapshot.forEach(doc => {
-            const data = doc.data();
-            const ip = data.ip || "Unknown IP";
-            if (data.location && data.location.lat && data.location.lon) {
-              const lat = data.location.lat.toFixed(6);
-              const lon = data.location.lon.toFixed(6);
-              const mapUrl = `https://www.google.com/maps?q=${lat},${lon}`;
-              infoHtml += `<div class="mb-1">IP: <span class="font-mono">${ip}</span> | <a href="${mapUrl}" target="_blank" class="text-blue-600 underline hover:text-blue-800">Live Location</a></div>`;
-            } else {
-              infoHtml += `<div class="mb-1">IP: <span class="font-mono">${ip}</span> | Location not available</div>`;
-            }
-          });
-
-          deviceInfoDiv.innerHTML = infoHtml;
         } catch (error) {
-          const deviceInfoDiv = document.getElementById(`deviceInfo-${docId}`);
-          if (deviceInfoDiv) {
-            deviceInfoDiv.textContent = "Error loading device info";
+          const deviceCountElem = document.getElementById(`deviceCount-${docId}`);
+          if (deviceCountElem) {
+            deviceCountElem.textContent = "Error loading device count";
           }
-          console.error("Error fetching device info:", error);
+          console.error("Error fetching device count:", error);
         }
       }
 
@@ -188,6 +168,7 @@
         return `${d.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' })} ${d.toLocaleTimeString()}`;
       }
 
+      // প্রথমবার পেজ লোড হলে ডাটা আনো
       loadLicenses();
     });
   </script>
