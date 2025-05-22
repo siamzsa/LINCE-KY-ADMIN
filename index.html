@@ -7,27 +7,27 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-  <!-- Firebase Modular SDK (from screenshot, uses v9+ modular syntax) -->
-  <script type="module">
-    // Import the functions you need from the SDKs you need
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, addDoc, orderBy, query, serverTimestamp, updateDoc, deleteDoc, doc, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-    // Your web app's Firebase configuration (from screenshot)
+  <!-- Firebase Config -->
+  <script>
     const firebaseConfig = {
-      apiKey: "AlZaSyDVTvktj5nzhZQ8RmaFe8kMGyIFaJfHPcnc",
-      authDomain: "siaxmn.firebaseapp.com",
-      projectId: "siaxmn",
-      storageBucket: "siaxmn.appspot.com",
-      messagingSenderId: "63691011312",
-      appId: "1:63691011312:web:6480a64b4bcf4ad195081d",
-      measurementId: "G-S6PLXLHC8Y"
+      apiKey: "AIzaSy8m3iuH0de6K31q58DlDcm4RFsJfNTt0Y",
+      authDomain: "xsiam-8cd91.firebaseapp.com",
+      databaseURL: "https://xsiam-8cd91-default-rtdb.firebaseio.com",
+      projectId: "xsiam-8cd91",
+      storageBucket: "xsiam-8cd91.appspot.com",
+      messagingSenderId: "449795686178",
+      appId: "1:449795686178:web:67631b23b88be6a0eaef7b",
+      measurementId: "G-C987LSZV4G"
     };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
+  <script>
     document.addEventListener("DOMContentLoaded", async () => {
       const addBtn = document.getElementById("addLicenseBtn");
       const nameInput = document.getElementById("nameInput");
@@ -35,16 +35,15 @@
       const list = document.getElementById("licenseList");
       const message = document.getElementById("message");
 
-      // Load licenses
+      // লাইসেন্স লোড করা
       async function loadLicenses() {
         list.innerHTML = '<div class="text-gray-500 text-sm">Loading...</div>';
         try {
-          const q = query(collection(db, 'licenses'), orderBy('createdAt', 'desc'));
-          const snapshot = await getDocs(q);
+          const snapshot = await db.collection('licenses').orderBy('createdAt', 'desc').get();
           list.innerHTML = '';
-          snapshot.forEach(docSnap => {
-            const data = docSnap.data();
-            createRow(docSnap.id, data.name, data.key, data.date, data.active);
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            createRow(doc.id, data.name, data.key, data.date, data.active);
           });
           if (list.innerHTML === '') {
             list.innerHTML = '<div class="text-gray-400 text-sm">No licenses added yet.</div>';
@@ -55,7 +54,7 @@
         }
       }
 
-      // Add license
+      // লাইসেন্স যুক্ত করা
       addBtn.addEventListener("click", async () => {
         const name = nameInput.value.trim();
         const key = keyInput.value.trim();
@@ -69,10 +68,10 @@
 
         const date = formatDate();
         try {
-          await addDoc(collection(db, 'licenses'), {
+          await db.collection('licenses').add({
             name, key, date,
             active: true,
-            createdAt: serverTimestamp()
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
           });
           message.textContent = "✅ License added successfully!";
           message.className = "text-green-500 text-sm mt-2";
@@ -86,7 +85,7 @@
         }
       });
 
-      // Create license row in UI
+      // লাইসেন্স রো তৈরি ও UI-তে দেখানো
       function createRow(docId, name, key, date, active = true) {
         const row = document.createElement("div");
         row.className = "flex justify-between items-center bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition duration-300";
@@ -109,7 +108,7 @@
         toggleBtn.addEventListener("click", async () => {
           const newActive = !active;
           try {
-            await updateDoc(doc(db, 'licenses', docId), { active: newActive });
+            await db.collection('licenses').doc(docId).update({ active: newActive });
             loadLicenses();
           } catch (err) {
             alert("Error updating status!");
@@ -125,7 +124,7 @@
         deleteBtn.addEventListener("click", async () => {
           if (confirm(`Are you sure you want to delete ${name}?`)) {
             try {
-              await deleteDoc(doc(db, 'licenses', docId));
+              await db.collection('licenses').doc(docId).delete();
               loadLicenses();
             } catch (err) {
               alert("Error deleting license!");
@@ -140,15 +139,16 @@
         row.appendChild(right);
         list.appendChild(row);
 
-        // Fetch device count
+        // ডিভাইস কাউন্ট ফেচ করো
         fetchDeviceCount(key, docId);
       }
 
-      // Get device count by license key
+      // লাইসেন্স কী দিয়ে devices কালেকশন থেকে ডিভাইসের সংখ্যা নাও
       async function fetchDeviceCount(licenseKey, docId) {
         try {
-          const q = query(collection(db, 'devices'), where('licenseKey', '==', licenseKey));
-          const devicesSnapshot = await getDocs(q);
+          const devicesSnapshot = await db.collection('devices')
+            .where('licenseKey', '==', licenseKey)
+            .get();
           const count = devicesSnapshot.size;
           const deviceCountElem = document.getElementById(`deviceCount-${docId}`);
           if (deviceCountElem) {
@@ -168,7 +168,7 @@
         return `${d.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' })} ${d.toLocaleTimeString()}`;
       }
 
-      // Initial load
+      // প্রথমবার পেজ লোড হলে ডাটা আনো
       loadLicenses();
     });
   </script>
