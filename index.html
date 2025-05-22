@@ -7,21 +7,21 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-  <!-- Firebase SDK v9+ (Modular) -->
+  <!-- Firebase Modular SDK (from screenshot, uses v9+ modular syntax) -->
   <script type="module">
     // Import the functions you need from the SDKs you need
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp, where, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc, orderBy, query, serverTimestamp, updateDoc, deleteDoc, doc, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // Your web app's Firebase configuration
+    // Your web app's Firebase configuration (from screenshot)
     const firebaseConfig = {
-      apiKey: "AIzaSyAEugnJ6e4tTBBkoTupBcTxy9LyOemUo8",
-      authDomain: "siam-ba9a3.firebaseapp.com",
-      projectId: "siam-ba9a3",
-      storageBucket: "siam-ba9a3.appspot.com",
-      messagingSenderId: "456685152210",
-      appId: "1:456685152210:web:4f522d5aa9b0b2e5a40ab",
-      measurementId: "G-K978KSZ6L"
+      apiKey: "AlZaSyDVTvktj5nzhZQ8RmaFe8kMGyIFaJfHPcnc",
+      authDomain: "siaxmn.firebaseapp.com",
+      projectId: "siaxmn",
+      storageBucket: "siaxmn.appspot.com",
+      messagingSenderId: "63691011312",
+      appId: "1:63691011312:web:6480a64b4bcf4ad195081d",
+      measurementId: "G-S6PLXLHC8Y"
     };
 
     // Initialize Firebase
@@ -35,7 +35,7 @@
       const list = document.getElementById("licenseList");
       const message = document.getElementById("message");
 
-      // লাইসেন্স লোড করা
+      // Load licenses
       async function loadLicenses() {
         list.innerHTML = '<div class="text-gray-500 text-sm">Loading...</div>';
         try {
@@ -55,7 +55,7 @@
         }
       }
 
-      // লাইসেন্স যুক্ত করা
+      // Add license
       addBtn.addEventListener("click", async () => {
         const name = nameInput.value.trim();
         const key = keyInput.value.trim();
@@ -86,7 +86,7 @@
         }
       });
 
-      // লাইসেন্স রো তৈরি ও UI-তে দেখানো
+      // Create license row in UI
       function createRow(docId, name, key, date, active = true) {
         const row = document.createElement("div");
         row.className = "flex justify-between items-center bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition duration-300";
@@ -140,11 +140,11 @@
         row.appendChild(right);
         list.appendChild(row);
 
-        // ডিভাইস কাউন্ট ফেচ করো
+        // Fetch device count
         fetchDeviceCount(key, docId);
       }
 
-      // লাইসেন্স কী দিয়ে devices কালেকশন থেকে ডিভাইসের সংখ্যা নাও
+      // Get device count by license key
       async function fetchDeviceCount(licenseKey, docId) {
         try {
           const q = query(collection(db, 'devices'), where('licenseKey', '==', licenseKey));
@@ -168,7 +168,7 @@
         return `${d.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' })} ${d.toLocaleTimeString()}`;
       }
 
-      // প্রথমবার পেজ লোড হলে ডাটা আনো
+      // Initial load
       loadLicenses();
     });
   </script>
@@ -176,15 +176,19 @@
 <body class="bg-gray-100 min-h-screen font-sans">
   <div class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-xl shadow-xl">
     <h1 class="text-2xl font-bold mb-4 text-gray-800">License Admin Panel</h1>
+
     <div class="grid grid-cols-1 gap-4 mb-4 md:grid-cols-2">
       <input id="nameInput" type="text" placeholder="User name" class="p-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition duration-300" />
       <input id="keyInput" type="text" placeholder="License key" class="p-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition duration-300" />
     </div>
+
     <button id="addLicenseBtn" class="w-full flex justify-center items-center gap-2 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-transform transform hover:scale-105">
       <i class="fas fa-circle-plus text-white text-lg"></i> <span>Add License</span>
     </button>
     <div id="message" class="mt-3"></div>
+
     <hr class="my-6 border-t" />
+
     <h2 class="text-lg font-semibold text-gray-700 mb-2">Added Licenses</h2>
     <div id="licenseList" class="space-y-4"></div>
   </div>
