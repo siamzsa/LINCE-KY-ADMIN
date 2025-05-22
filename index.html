@@ -10,9 +10,9 @@
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
   <!-- Firebase Config -->
   <script>
-    // তোমার অ্যাডমিন প্যানেলের firebaseConfig এখানে বসাও (স্ক্রিনশট ৪ থেকে)
     const firebaseConfig = {
       apiKey: "AIzaSy8m3iuH0de6K31q58DlDcm4RFsJfNTt0Y",
       authDomain: "xsiam-8cd91.firebaseapp.com",
@@ -35,17 +35,22 @@
       const list = document.getElementById("licenseList");
       const message = document.getElementById("message");
 
-      // Firestore থেকে লাইসেন্স লোড করা
+      // লাইসেন্স লোড করা
       async function loadLicenses() {
         list.innerHTML = '<div class="text-gray-500 text-sm">Loading...</div>';
-        const snapshot = await db.collection('licenses').orderBy('createdAt', 'desc').get();
-        list.innerHTML = '';
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          createRow(doc.id, data.name, data.key, data.date, data.active);
-        });
-        if (list.innerHTML === '') {
-          list.innerHTML = '<div class="text-gray-400 text-sm">No licenses added yet.</div>';
+        try {
+          const snapshot = await db.collection('licenses').orderBy('createdAt', 'desc').get();
+          list.innerHTML = '';
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            createRow(doc.id, data.name, data.key, data.date, data.active);
+          });
+          if (list.innerHTML === '') {
+            list.innerHTML = '<div class="text-gray-400 text-sm">No licenses added yet.</div>';
+          }
+        } catch (error) {
+          list.innerHTML = '<div class="text-red-500 text-sm">Error loading licenses.</div>';
+          console.error("Error loading licenses:", error);
         }
       }
 
@@ -76,10 +81,11 @@
         } catch (err) {
           message.textContent = "❌ Error adding license!";
           message.className = "text-red-500 text-sm mt-2";
+          console.error("Error adding license:", err);
         }
       });
 
-      // লাইসেন্স রো তৈরি ও UI-তে দেখানো (Firestore sync সহ)
+      // লাইসেন্স রো তৈরি ও UI-তে দেখানো
       function createRow(docId, name, key, date, active = true) {
         const row = document.createElement("div");
         row.className = "flex justify-between items-center bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition duration-300";
@@ -89,6 +95,7 @@
           <div class="font-semibold text-gray-800">${name}</div>
           <div class="text-sm text-gray-500">${key}</div>
           <div class="text-xs text-gray-400">Added: ${date}</div>
+          <div id="deviceCount-${docId}" class="text-xs text-blue-600 mt-1">Loading device count...</div>
         `;
 
         const right = document.createElement("div");
@@ -105,6 +112,7 @@
             loadLicenses();
           } catch (err) {
             alert("Error updating status!");
+            console.error(err);
           }
         });
 
@@ -120,6 +128,7 @@
               loadLicenses();
             } catch (err) {
               alert("Error deleting license!");
+              console.error(err);
             }
           }
         });
@@ -129,6 +138,29 @@
         row.appendChild(left);
         row.appendChild(right);
         list.appendChild(row);
+
+        // ডিভাইস কাউন্ট ফেচ করো
+        fetchDeviceCount(key, docId);
+      }
+
+      // লাইসেন্স কী দিয়ে devices কালেকশন থেকে ডিভাইসের সংখ্যা নাও
+      async function fetchDeviceCount(licenseKey, docId) {
+        try {
+          const devicesSnapshot = await db.collection('devices')
+            .where('licenseKey', '==', licenseKey)
+            .get();
+          const count = devicesSnapshot.size;
+          const deviceCountElem = document.getElementById(`deviceCount-${docId}`);
+          if (deviceCountElem) {
+            deviceCountElem.textContent = `Used on ${count} device${count !== 1 ? 's' : ''}`;
+          }
+        } catch (error) {
+          const deviceCountElem = document.getElementById(`deviceCount-${docId}`);
+          if (deviceCountElem) {
+            deviceCountElem.textContent = "Error loading device count";
+          }
+          console.error("Error fetching device count:", error);
+        }
       }
 
       function formatDate() {
@@ -136,13 +168,13 @@
         return `${d.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' })} ${d.toLocaleTimeString()}`;
       }
 
-      // প্রথমবার লোডে লাইসেন্স ফেচ করা
+      // প্রথমবার পেজ লোড হলে ডাটা আনো
       loadLicenses();
     });
   </script>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
-  <div class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-xl shadow-xl animate__animated animate__fadeIn">
+  <div class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-xl shadow-xl">
     <h1 class="text-2xl font-bold mb-4 text-gray-800">License Admin Panel</h1>
 
     <div class="grid grid-cols-1 gap-4 mb-4 md:grid-cols-2">
