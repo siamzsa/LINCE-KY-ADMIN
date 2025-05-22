@@ -6,20 +6,81 @@
   <title>License Admin Panel</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <!-- Firebase Config -->
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
+    // তোমার অ্যাডমিন প্যানেলের firebaseConfig এখানে বসাও (স্ক্রিনশট ৪ থেকে)
+    const firebaseConfig = {
+      apiKey: "AIzaSy8m3iuH0de6K31q58DlDcm4RFsJfNTt0Y",
+      authDomain: "xsiam-8cd91.firebaseapp.com",
+      databaseURL: "https://xsiam-8cd91-default-rtdb.firebaseio.com",
+      projectId: "xsiam-8cd91",
+      storageBucket: "xsiam-8cd91.appspot.com",
+      messagingSenderId: "449795686178",
+      appId: "1:449795686178:web:67631b23b88be6a0eaef7b",
+      measurementId: "G-C987LSZV4G"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
       const addBtn = document.getElementById("addLicenseBtn");
       const nameInput = document.getElementById("nameInput");
       const keyInput = document.getElementById("keyInput");
       const list = document.getElementById("licenseList");
       const message = document.getElementById("message");
 
-      const formatDate = () => {
-        const d = new Date();
-        return `${d.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' })} ${d.toLocaleTimeString()}`;
-      };
+      // Firestore থেকে লাইসেন্স লোড করা
+      async function loadLicenses() {
+        list.innerHTML = '<div class="text-gray-500 text-sm">Loading...</div>';
+        const snapshot = await db.collection('licenses').orderBy('createdAt', 'desc').get();
+        list.innerHTML = '';
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          createRow(doc.id, data.name, data.key, data.date, data.active);
+        });
+        if (list.innerHTML === '') {
+          list.innerHTML = '<div class="text-gray-400 text-sm">No licenses added yet.</div>';
+        }
+      }
 
-      const createRow = (name, key, date, active = true) => {
+      // লাইসেন্স যুক্ত করা
+      addBtn.addEventListener("click", async () => {
+        const name = nameInput.value.trim();
+        const key = keyInput.value.trim();
+        if (!name || !key) {
+          message.textContent = "❌ Please fill in both fields.";
+          message.className = "text-red-500 text-sm mt-2";
+          return;
+        }
+        message.textContent = "⏳ Adding license...";
+        message.className = "text-blue-500 text-sm mt-2";
+
+        const date = formatDate();
+        try {
+          await db.collection('licenses').add({
+            name, key, date,
+            active: true,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          message.textContent = "✅ License added successfully!";
+          message.className = "text-green-500 text-sm mt-2";
+          nameInput.value = "";
+          keyInput.value = "";
+          loadLicenses();
+        } catch (err) {
+          message.textContent = "❌ Error adding license!";
+          message.className = "text-red-500 text-sm mt-2";
+        }
+      });
+
+      // লাইসেন্স রো তৈরি ও UI-তে দেখানো (Firestore sync সহ)
+      function createRow(docId, name, key, date, active = true) {
         const row = document.createElement("div");
         row.className = "flex justify-between items-center bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition duration-300";
 
@@ -37,15 +98,14 @@
         toggleBtn.className = `toggleBtn px-3 py-1 rounded-md text-white transition-all duration-300 ${active ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`;
         toggleBtn.textContent = active ? 'Block' : 'Unblock';
 
-        toggleBtn.addEventListener("click", (e) => {
-          const isBlocked = toggleBtn.textContent === "Unblock";
-          toggleBtn.textContent = isBlocked ? "Block" : "Unblock";
-          toggleBtn.className = `toggleBtn px-3 py-1 rounded-md text-white transition-all duration-300 ${isBlocked ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`;
-          const timestamp = new Date().toLocaleString();
-          const log = document.createElement("div");
-          log.className = "text-xs text-gray-500 mt-1";
-          log.textContent = `${toggleBtn.textContent === "Block" ? "Unblocked" : "Blocked"} at ${timestamp}`;
-          left.appendChild(log);
+        toggleBtn.addEventListener("click", async () => {
+          const newActive = !active;
+          try {
+            await db.collection('licenses').doc(docId).update({ active: newActive });
+            loadLicenses();
+          } catch (err) {
+            alert("Error updating status!");
+          }
         });
 
         const deleteBtn = document.createElement("button");
@@ -53,9 +113,14 @@
         deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
         deleteBtn.title = "Delete User";
 
-        deleteBtn.addEventListener("click", () => {
+        deleteBtn.addEventListener("click", async () => {
           if (confirm(`Are you sure you want to delete ${name}?`)) {
-            row.remove();
+            try {
+              await db.collection('licenses').doc(docId).delete();
+              loadLicenses();
+            } catch (err) {
+              alert("Error deleting license!");
+            }
           }
         });
 
@@ -63,24 +128,16 @@
         right.appendChild(deleteBtn);
         row.appendChild(left);
         row.appendChild(right);
-        list.prepend(row);
-      };
+        list.appendChild(row);
+      }
 
-      addBtn.addEventListener("click", () => {
-        const name = nameInput.value.trim();
-        const key = keyInput.value.trim();
-        if (!name || !key) {
-          message.textContent = "❌ Please fill in both fields.";
-          message.className = "text-red-500 text-sm mt-2";
-          return;
-        }
-        const date = formatDate();
-        createRow(name, key, date);
-        message.textContent = "✅ License added successfully!";
-        message.className = "text-green-500 text-sm mt-2";
-        nameInput.value = "";
-        keyInput.value = "";
-      });
+      function formatDate() {
+        const d = new Date();
+        return `${d.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' })} ${d.toLocaleTimeString()}`;
+      }
+
+      // প্রথমবার লোডে লাইসেন্স ফেচ করা
+      loadLicenses();
     });
   </script>
 </head>
