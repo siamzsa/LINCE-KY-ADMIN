@@ -1,196 +1,365 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>License Admin Panel</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin Panel - License Manager</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; background: #fff; color: #333; }
+  h1, h2 { text-align: center; }
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  /* Search box */
+  #searchBox {
+    margin-bottom: 15px; 
+    padding: 10px 15px; 
+    width: 100%; 
+    max-width: 400px; 
+    font-size: 16px; 
+    border: 2px solid #ddd; 
+    border-radius: 8px; 
+    transition: border-color 0.3s ease;
+  }
+  #searchBox:focus {
+    outline: none;
+    border-color: #0d6efd;
+    box-shadow: 0 0 8px rgba(13,110,253,0.3);
+  }
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSy8m3iuH0de6K31q58DlDcm4RFsJfNTt0Y",
-      authDomain: "xsiam-8cd91.firebaseapp.com",
-      databaseURL: "https://xsiam-8cd91-default-rtdb.firebaseio.com",
-      projectId: "xsiam-8cd91",
-      storageBucket: "xsiam-8cd91.appspot.com",
-      messagingSenderId: "449795686178",
-      appId: "1:449795686178:web:67631b23b88be6a0eaef7b",
-      measurementId: "G-C987LSZV4G"
-    };
+  table { border-collapse: collapse; width: 100%; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-radius: 10px; overflow: hidden; }
+  th, td { border: 1px solid #ccc; padding: 12px 10px; text-align: center; background: #fff; transition: background-color 0.25s ease; }
+  th { background: #f0f0f0; font-weight: 600; }
+
+  tbody tr:hover td {
+    background-color: #e6f0ff;
+    cursor: default;
+  }
+
+  input[type=number], input[type=text] {
+    padding: 8px; 
+    width: 100%; 
+    box-sizing: border-box; 
+    border: 1.5px solid #ccc;
+    border-radius: 6px;
+    transition: border-color 0.3s ease;
+  }
+  input[type=number]:focus, input[type=text]:focus {
+    outline: none;
+    border-color: #0d6efd;
+    box-shadow: 0 0 6px rgba(13,110,253,0.4);
+  }
+
+  button {
+    padding: 8px 15px; 
+    cursor: pointer; 
+    font-weight: 600;
+    border-radius: 8px;
+    border: none;
+    background-color: #0d6efd;
+    color: white;
+    transition: background-color 0.3s ease, transform 0.15s ease;
+    user-select: none;
+  }
+  button:hover {
+    background-color: #0b5ed7;
+    transform: scale(1.05);
+  }
+  button:active {
+    transform: scale(0.95);
+  }
+
+  /* Active/Inactive Toggle Buttons */
+  .toggle-active {
+    cursor: pointer; 
+    padding: 6px 12px; 
+    border-radius: 20px; 
+    color: white;
+    font-weight: 600;
+    user-select: none;
+    border: 2px solid transparent;
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    min-width: 75px;
+  }
+  .toggle-active.active {
+    background-color: #28a745;
+    border-color: #218838;
+    box-shadow: 0 0 8px rgba(40,167,69,0.6);
+  }
+  .toggle-active.inactive {
+    background-color: #dc3545;
+    border-color: #b02a37;
+    box-shadow: 0 0 8px rgba(220,53,69,0.6);
+  }
+
+  .blocked {
+    background-color: #ff8800 !important;
+    color: white;
+    font-weight: bold;
+    border-radius: 6px;
+    user-select: none;
+  }
+
+  /* Form layout */
+  #addLicenseForm {
+    margin-top: 30px; 
+    border: 1px solid #ccc; 
+    padding: 20px 25px; 
+    border-radius: 12px; 
+    display: grid; 
+    grid-template-columns: 1fr 1fr 1fr auto; 
+    gap: 15px; 
+    align-items: center;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+  }
+  #addLicenseForm input {
+    margin: 0;
+  }
+
+  /* Delete button style */
+  td:last-child button {
+    background-color: #dc3545;
+    border: 2px solid #b02a37;
+    box-shadow: 0 0 8px rgba(220,53,69,0.6);
+  }
+  td:last-child button:hover {
+    background-color: #a71d2a;
+    box-shadow: 0 0 12px rgba(167,29,42,0.8);
+  }
+
+  /* Loading spinner */
+  .spinner {
+    border: 4px solid #f3f3f3; /* Light grey */
+    border-top: 4px solid #0d6efd; /* Blue */
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+    margin: 15px auto;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+</style>
+</head>
+<body>
+
+<h1>Admin Panel - License Manager</h1>
+
+<input type="text" id="searchBox" placeholder="Search by License Name..." />
+
+<table id="licensesTable" aria-label="License Table">
+  <thead>
+    <tr>
+      <th>License Name</th>
+      <th>License Key</th>
+      <th>Max Devices</th>
+      <th>Active Devices</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- licenses will be populated here -->
+  </tbody>
+</table>
+
+<h2>Add New License</h2>
+<form id="addLicenseForm">
+  <input type="text" id="newLicenseName" placeholder="License Name" required autocomplete="off" />
+  <input type="text" id="newLicenseKey" placeholder="License Key" required autocomplete="off" />
+  <input type="number" id="newMaxDevices" placeholder="Max Devices" min="1" value="1" required />
+  <button type="submit">Add License</button>
+</form>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSy8m3iuH0de6K31q58DlDcm4RFsJfNTt0Y",
+    authDomain: "xsiam-8cd91.firebaseapp.com",
+    databaseURL: "https://xsiam-8cd91-default-rtdb.firebaseio.com",
+    projectId: "xsiam-8cd91",
+    storageBucket: "xsiam-8cd91.appspot.com",
+    messagingSenderId: "449795686178",
+    appId: "1:449795686178:web:67631b23b88be6a0eaef7b",
+    measurementId: "G-C987LSZV4G"
+  };
+
+  if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-  </script>
+  }
+  const db = firebase.firestore();
 
-  <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      const addBtn = document.getElementById("addLicenseBtn");
-      const nameInput = document.getElementById("nameInput");
-      const keyInput = document.getElementById("keyInput");
-      const deviceLimitInput = document.getElementById("deviceLimitInput");
-      const list = document.getElementById("licenseList");
-      const message = document.getElementById("message");
+  const licensesTableBody = document.querySelector("#licensesTable tbody");
+  const addLicenseForm = document.getElementById("addLicenseForm");
+  const searchBox = document.getElementById("searchBox");
 
-      async function loadLicenses() {
-        list.innerHTML = '<div class="text-gray-500 text-sm">Loading...</div>';
-        try {
-          const snapshot = await db.collection('licenses').orderBy('createdAt', 'desc').get();
-          list.innerHTML = '';
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            createRow(doc.id, data.name, data.key, data.date, data.active, data.deviceLimit || 1);
-          });
-          if (list.innerHTML === '') {
-            list.innerHTML = '<div class="text-gray-400 text-sm">No licenses added yet.</div>';
-          }
-        } catch (error) {
-          list.innerHTML = '<div class="text-red-500 text-sm">Error loading licenses.</div>';
-          console.error("Error loading licenses:", error);
-        }
+  let licensesData = []; // To store all licenses locally for filtering
+
+  async function fetchLicenses() {
+    licensesTableBody.innerHTML = '<tr><td colspan="6"><div class="spinner" role="status" aria-label="Loading licenses"></div></td></tr>';
+    try {
+      const snapshot = await db.collection("licenses").orderBy("createdAt", "desc").get();
+      if (snapshot.empty) {
+        licensesTableBody.innerHTML = "<tr><td colspan='6'>No licenses found.</td></tr>";
+        licensesData = [];
+        return;
       }
 
-      addBtn.addEventListener("click", async () => {
-        const name = nameInput.value.trim();
-        const key = keyInput.value.trim();
-        const deviceLimit = parseInt(deviceLimitInput.value.trim(), 10);
-
-        if (!name || !key || isNaN(deviceLimit) || deviceLimit < 1) {
-          message.textContent = "❌ Please fill in all fields correctly.";
-          message.className = "text-red-500 text-sm mt-2";
-          return;
-        }
-
-        message.textContent = "⏳ Adding license...";
-        message.className = "text-blue-500 text-sm mt-2";
-
-        const date = formatDate();
-        try {
-          await db.collection('licenses').add({
-            name, key, date,
-            active: true,
-            deviceLimit,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          message.textContent = "✅ License added successfully!";
-          message.className = "text-green-500 text-sm mt-2";
-          nameInput.value = "";
-          keyInput.value = "";
-          deviceLimitInput.value = "";
-          loadLicenses();
-        } catch (err) {
-          message.textContent = "❌ Error adding license!";
-          message.className = "text-red-500 text-sm mt-2";
-          console.error("Error adding license:", err);
-        }
+      licensesData = [];
+      snapshot.forEach(doc => {
+        licensesData.push({ id: doc.id, ...doc.data() });
       });
 
-      function createRow(docId, name, key, date, active = true, deviceLimit = 1) {
-        const row = document.createElement("div");
-        row.className = "flex justify-between items-center bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition duration-300";
+      renderLicenses(licensesData);
+    } catch (error) {
+      licensesTableBody.innerHTML = `<tr><td colspan='6' style="color:red;">Error loading licenses: ${error.message}</td></tr>`;
+      console.error(error);
+    }
+  }
 
-        const left = document.createElement("div");
-        left.innerHTML = `
-          <div class="font-semibold text-gray-800">${name}</div>
-          <div class="text-sm text-gray-500">${key}</div>
-          <div class="text-xs text-gray-400">Added: ${date}</div>
-          <div class="text-xs text-gray-500">Limit: ${deviceLimit} device(s)</div>
-          <div id="deviceCount-${docId}" class="text-xs text-blue-600 mt-1">Loading device count...</div>
-        `;
+  function renderLicenses(licenses) {
+    if (licenses.length === 0) {
+      licensesTableBody.innerHTML = "<tr><td colspan='6'>No licenses found.</td></tr>";
+      return;
+    }
 
-        const right = document.createElement("div");
-        right.className = "flex items-center space-x-2";
+    licensesTableBody.innerHTML = "";
+    licenses.forEach(data => {
+      const id = data.id;
+      const licenseName = data.name || "(No Name)";
+      const maxDevices = data.maxDevices || 1;
+      const activeDevices = data.activeDevices || 0;
+      const isBlocked = activeDevices > maxDevices;
 
-        const toggleBtn = document.createElement("button");
-        toggleBtn.className = `toggleBtn px-3 py-1 rounded-md text-white transition-all duration-300 ${active ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`;
-        toggleBtn.textContent = active ? 'Block' : 'Unblock';
+      const tr = document.createElement("tr");
 
-        toggleBtn.addEventListener("click", async () => {
-          const newActive = !active;
-          try {
-            await db.collection('licenses').doc(docId).update({ active: newActive });
-            loadLicenses();
-          } catch (err) {
-            alert("Error updating status!");
-            console.error(err);
-          }
-        });
+      // License Name
+      const tdName = document.createElement("td");
+      tdName.textContent = licenseName;
+      tr.appendChild(tdName);
 
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "px-3 py-1 rounded-md bg-gray-300 hover:bg-gray-400 text-black transition-all duration-300";
-        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-        deleteBtn.title = "Delete User";
+      // License Key
+      const tdKey = document.createElement("td");
+      tdKey.textContent = data.key || id;
+      tr.appendChild(tdKey);
 
-        deleteBtn.addEventListener("click", async () => {
-          if (confirm(`Are you sure you want to delete ${name}?`)) {
-            try {
-              await db.collection('licenses').doc(docId).delete();
-              loadLicenses();
-            } catch (err) {
-              alert("Error deleting license!");
-              console.error(err);
-            }
-          }
-        });
-
-        right.appendChild(toggleBtn);
-        right.appendChild(deleteBtn);
-        row.appendChild(left);
-        row.appendChild(right);
-        list.appendChild(row);
-
-        fetchDeviceCount(key, docId);
-      }
-
-      async function fetchDeviceCount(licenseKey, docId) {
-        try {
-          const devicesSnapshot = await db.collection('devices')
-            .where('licenseKey', '==', licenseKey)
-            .get();
-          const count = devicesSnapshot.size;
-          const deviceCountElem = document.getElementById(`deviceCount-${docId}`);
-          if (deviceCountElem) {
-            deviceCountElem.textContent = `Used on ${count} device${count !== 1 ? 's' : ''}`;
-          }
-        } catch (error) {
-          const deviceCountElem = document.getElementById(`deviceCount-${docId}`);
-          if (deviceCountElem) {
-            deviceCountElem.textContent = "Error loading device count";
-          }
-          console.error("Error fetching device count:", error);
+      // Max Devices input (editable)
+      const tdMaxDevices = document.createElement("td");
+      const inputMaxDevices = document.createElement("input");
+      inputMaxDevices.type = "number";
+      inputMaxDevices.min = "1";
+      inputMaxDevices.value = maxDevices;
+      inputMaxDevices.style.width = "60px";
+      inputMaxDevices.addEventListener("change", async () => {
+        const val = parseInt(inputMaxDevices.value);
+        if (val < 1) {
+          alert("Max devices must be at least 1");
+          inputMaxDevices.value = maxDevices;
+          return;
         }
-      }
+        await db.collection("licenses").doc(id).update({ maxDevices: val });
+        alert("Max devices updated!");
+        fetchLicenses();
+      });
+      tdMaxDevices.appendChild(inputMaxDevices);
+      tr.appendChild(tdMaxDevices);
 
-      function formatDate() {
-        const d = new Date();
-        return `${d.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' })} ${d.toLocaleTimeString()}`;
+      // Active Devices count (readonly)
+      const tdActiveDevices = document.createElement("td");
+      tdActiveDevices.textContent = activeDevices;
+      if (isBlocked) {
+        tdActiveDevices.style.color = "red";
+        tdActiveDevices.style.fontWeight = "bold";
       }
+      tr.appendChild(tdActiveDevices);
 
-      loadLicenses();
+      // Status (Active / Inactive / Blocked)
+      const tdStatus = document.createElement("td");
+      if (isBlocked) {
+        tdStatus.textContent = "Blocked";
+        tdStatus.className = "blocked";
+      } else {
+        // Toggle active button
+        const activeBtn = document.createElement("button");
+        activeBtn.textContent = data.active ? "Active" : "Inactive";
+        activeBtn.className = data.active ? "toggle-active active" : "toggle-active inactive";
+        activeBtn.setAttribute("aria-pressed", data.active);
+        activeBtn.addEventListener("click", async () => {
+          await db.collection("licenses").doc(id).update({ active: !data.active });
+          alert("License status updated!");
+          fetchLicenses();
+        });
+        tdStatus.appendChild(activeBtn);
+      }
+      tr.appendChild(tdStatus);
+
+      // Actions - Delete License
+      const tdActions = document.createElement("td");
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "Delete";
+      delBtn.style.backgroundColor = "#dc3545";
+      delBtn.style.color = "white";
+      delBtn.addEventListener("click", async () => {
+        if (confirm(`Are you sure you want to delete license: "${licenseName}"?`)) {
+          await db.collection("licenses").doc(id).delete();
+          alert("License deleted!");
+          fetchLicenses();
+        }
+      });
+      tdActions.appendChild(delBtn);
+      tr.appendChild(tdActions);
+
+      licensesTableBody.appendChild(tr);
     });
-  </script>
-</head>
-<body class="bg-gray-100 min-h-screen font-sans">
-  <div class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-xl shadow-xl">
-    <h1 class="text-2xl font-bold mb-4 text-gray-800">License Admin Panel</h1>
+  }
 
-    <div class="grid grid-cols-1 gap-4 mb-4 md:grid-cols-3">
-      <input id="nameInput" type="text" placeholder="User name" class="p-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition duration-300" />
-      <input id="keyInput" type="text" placeholder="License key" class="p-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition duration-300" />
-      <input id="deviceLimitInput" type="number" min="1" placeholder="Device limit" class="p-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition duration-300" />
-    </div>
+  addLicenseForm.addEventListener("submit", async e => {
+    e.preventDefault();
 
-    <button id="addLicenseBtn" class="w-full flex justify-center items-center gap-2 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-transform transform hover:scale-105">
-      <i class="fas fa-circle-plus text-white text-lg"></i> <span>Add License</span>
-    </button>
-    <div id="message" class="mt-3"></div>
+    const newName = document.getElementById("newLicenseName").value.trim();
+    const newKey = document.getElementById("newLicenseKey").value.trim();
+    const newMaxDevices = parseInt(document.getElementById("newMaxDevices").value);
 
-    <hr class="my-6 border-t" />
+    if (!newName || !newKey || isNaN(newMaxDevices) || newMaxDevices < 1) {
+      alert("Please fill all fields correctly.");
+      return;
+    }
 
-    <h2 class="text-lg font-semibold text-gray-700 mb-2">Added Licenses</h2>
-    <div id="licenseList" class="space-y-4"></div>
-  </div>
+    try {
+      await db.collection("licenses").add({
+        name: newName,
+        key: newKey,
+        maxDevices: newMaxDevices,
+        activeDevices: 0,
+        active: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      alert("New license added!");
+      addLicenseForm.reset();
+      fetchLicenses();
+    } catch (error) {
+      alert("Error adding license: " + error.message);
+    }
+  });
+
+  searchBox.addEventListener("input", () => {
+    const query = searchBox.value.trim().toLowerCase();
+    if (!query) {
+      renderLicenses(licensesData);
+      return;
+    }
+    const filtered = licensesData.filter(item => {
+      return (item.name && item.name.toLowerCase().includes(query)) || 
+             (item.key && item.key.toLowerCase().includes(query));
+    });
+    renderLicenses(filtered);
+  });
+
+  // Initial fetch
+  fetchLicenses();
+</script>
+
 </body>
 </html>
