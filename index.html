@@ -290,4 +290,77 @@
   fetchLicenses();
 </script>
 </body>
+
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login - My Website</title>
+<style>
+  *{margin:0; padding:0; box-sizing:border-box; font-family:Arial,sans-serif;}
+  body{
+    background: url('https://images.unsplash.com/photo-1542281286-9e0a16bb7366') no-repeat center center/cover;
+    display:flex; justify-content:center; align-items:center; height:100vh;
+  }
+  .container{
+    background: rgba(255,255,255,0.15);
+    border-radius: 15px;
+    padding: 40px;
+    width: 350px;
+    text-align:center;
+    box-shadow: 0 8px 32px 0 rgba(31,38,135,0.37);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: black;
+  }
+  h2{margin-bottom:20px;}
+  input{
+    width:100%; padding:10px; margin:10px 0; border-radius:5px; border:none;
+    background: rgba(255,255,255,0.25); color:black;
+  }
+  input::placeholder{color: rgba(0,0,0,0.6);}
+  button{
+    width:100%; padding:10px; margin-top:20px; background:#4CAF50; border:none; color:white; font-size:16px; border-radius:5px; cursor:pointer;
+  }
+  button:hover{background:#45a049;}
+  p{margin-top:15px; color:black;}
+  a{color:black; text-decoration: underline;}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Admin</h2>
+  <form id="loginForm">
+    <input type="text" placeholder="User Name" id="username" required>
+    <input type="password" placeholder="Password (4 characters)" id="password" required>
+    <button type="submit">Login</button>
+  </form>
+  <p>Don't have an account? <a href="register.html">Register here</a></p>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+
+  // Demo credentials (hidden, only hash symbol shown)
+  const demoUser = { fullName: "Admin User", username: "user123", passwordHash: "#1234" };
+
+  // Check username and password
+  if(username === demoUser.username && password.length === 4){
+    localStorage.setItem('loggedInUser', JSON.stringify(demoUser));
+    alert("Login successful!");
+    window.location.href = "index.html";
+  } else {
+    alert("Invalid username or password!");
+  }
+});
+</script>
+
+</body>
 </html>
