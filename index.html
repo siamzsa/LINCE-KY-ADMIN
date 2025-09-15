@@ -15,10 +15,9 @@
       color:#fff;
     }
 
-    /* Container Frame */
     #panel {
       width: 100%;
-      max-width: 420px; /* Mobile max-width */
+      max-width: 420px;
       background: rgba(255,255,255,0.1);
       backdrop-filter: blur(12px);
       border-radius: 20px;
@@ -29,14 +28,7 @@
       transition: 0.3s;
     }
 
-    header {
-      text-align:center;
-      font-size:26px;
-      font-weight:bold;
-      letter-spacing:1px;
-      margin-bottom:15px;
-      color:#fff;
-    }
+    header {text-align:center;font-size:26px;font-weight:bold;letter-spacing:1px;margin-bottom:15px;color:#fff;}
 
     .card {
       background: rgba(255,255,255,0.15);
@@ -49,68 +41,39 @@
       transition:0.3s;
     }
     .card:hover {transform: translateY(-2px);}
-
     h2 {margin-bottom:15px;color:#fff;font-weight:600;text-align:center;}
 
     form input, form select {
-      width:100%;
-      padding:12px;
-      margin-bottom:15px;
+      width:100%;padding:12px;margin-bottom:15px;
       border:1px solid rgba(255,255,255,0.5);
-      border-radius:10px;
-      font-size:14px;
-      background: rgba(255,255,255,0.2);
-      color:#000;
-      outline:none;
-      backdrop-filter: blur(5px);
+      border-radius:10px;font-size:14px;
+      background: rgba(255,255,255,0.2);color:#000;
+      outline:none;backdrop-filter: blur(5px);
     }
     form input::placeholder {color:#555;}
-
     form button {
-      background:#4cafef;
-      color:#fff;
-      padding:12px 20px;
-      border:none;
-      border-radius:10px;
-      cursor:pointer;
-      font-size:16px;
-      transition:0.3s;
-      width:100%;
+      background:#4cafef;color:#fff;padding:12px 20px;
+      border:none;border-radius:10px;cursor:pointer;font-size:16px;
+      transition:0.3s;width:100%;
     }
     form button:hover {background:#3c9adf;transform:scale(1.05);}
 
-    table {
-      width:100%;border-collapse:collapse;margin-top:10px;color:#fff;
-      backdrop-filter: blur(5px);
-      font-size:14px;
-    }
+    table {width:100%;border-collapse:collapse;margin-top:10px;color:#fff;font-size:14px;}
     table th, table td {
       padding:10px;border-bottom:1px solid rgba(255,255,255,0.2);
-      text-align:center;
-      word-break: break-word;
+      text-align:center;word-break: break-word;
     }
-    table th {
-      background: rgba(255,255,255,0.1);
-      font-weight:600;
-    }
+    table th {background: rgba(255,255,255,0.1);font-weight:600;}
 
     .device-tag {
-      display:inline-block;
-      padding:4px 10px;
-      background:#4cafef;
-      color:#fff;
-      border-radius:6px;
-      font-size:12px;
+      display:inline-block;padding:4px 10px;
+      background:#4cafef;color:#fff;
+      border-radius:6px;font-size:12px;
     }
 
     .action-btn {
-      padding:6px 10px;
-      border:none;
-      border-radius:8px;
-      cursor:pointer;
-      font-size:12px;
-      margin:2px;
-      transition:0.3s;
+      padding:6px 10px;border:none;border-radius:8px;
+      cursor:pointer;font-size:12px;margin:2px;transition:0.3s;
     }
     .delete {background:#e74c3c;color:#fff;}
     .delete:hover {background:#c0392b;}
@@ -119,7 +82,6 @@
     .unblock {background:#2ecc71;color:#fff;}
     .unblock:hover {background:#27ae60;}
 
-    /* Responsive adjustments */
     @media(min-width: 768px){
       #panel {max-width: 900px;}
       table th, table td {font-size:15px;padding:14px;}
@@ -175,12 +137,10 @@
     const firebaseConfig = {
       apiKey: "AIzaSy8m3iuH0de6K31q58DlDcm4RFsJfNTt0Y",
       authDomain: "xsiam-8cd91.firebaseapp.com",
-      databaseURL: "https://xsiam-8cd91-default-rtdb.firebaseio.com",
       projectId: "xsiam-8cd91",
       storageBucket: "xsiam-8cd91.appspot.com",
       messagingSenderId: "449795686178",
       appId: "1:449795686178:web:67631b23b88be6a0eaef7b",
-      measurementId: "G-C987LSZV4G"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -196,29 +156,25 @@
       const licenseKey = document.getElementById('licenseKey').value.trim();
       const deviceLimit = parseInt(document.getElementById('deviceLimit').value);
       if(!username || !licenseKey || !deviceLimit) return;
+
       await db.collection("licenses").add({
         username,
         licenseKey,
         deviceLimit,
         activeDevices: 0,
+        devices: [], // will store device IDs
         status: "Active",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       form.reset();
     });
 
-    // Render Table + Auto-block
+    // Render Table
     db.collection("licenses").orderBy("createdAt", "desc").onSnapshot(snapshot => {
       tableBody.innerHTML = "";
-      snapshot.forEach(async doc => {
+      snapshot.forEach(doc => {
         const lic = doc.data();
         const id = doc.id;
-
-        // Auto-block logic
-        if(lic.activeDevices > lic.deviceLimit && lic.status === "Active"){
-          await db.collection("licenses").doc(id).update({status: "Blocked"});
-          lic.status = "Blocked";
-        }
 
         const row = `
           <tr>
@@ -241,6 +197,35 @@
     async function deleteUser(id) { await db.collection("licenses").doc(id).delete(); }
     async function blockUser(id) { await db.collection("licenses").doc(id).update({status: "Blocked"}); }
     async function unblockUser(id) { await db.collection("licenses").doc(id).update({status: "Active"}); }
+
+    // Function for verifying license from device
+    async function verifyLicense(licenseKey, deviceId){
+      const q = await db.collection("licenses").where("licenseKey","==",licenseKey).get();
+      if(q.empty) return {success:false, msg:"Invalid license"};
+
+      const doc = q.docs[0];
+      const data = doc.data();
+      const id = doc.id;
+
+      if(data.status === "Blocked") return {success:false, msg:"License blocked"};
+
+      let devices = data.devices || [];
+      if(!devices.includes(deviceId)){
+        if(devices.length >= data.deviceLimit){
+          await db.collection("licenses").doc(id).update({status:"Blocked"});
+          return {success:false, msg:"Device limit exceeded"};
+        }
+        devices.push(deviceId);
+        await db.collection("licenses").doc(id).update({
+          devices,
+          activeDevices: devices.length
+        });
+      }
+      return {success:true, msg:"License verified"};
+    }
+
+    // Example usage:
+    // verifyLicense("ABC-123","device-unique-id-1").then(console.log);
   </script>
 </body>
 </html>
